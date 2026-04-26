@@ -5,10 +5,560 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Financeiro — Luana Alves</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<style>body{background:#0f0f11;color:#f0eee8;font-family:-apple-system,sans-serif;margin:0}</style>
+<style>
+  :root {
+    --bg: #0f0f11; --bg2: #17171a; --bg3: #1e1e23;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #f0eee8; --text2: #8a8880; --text3: #4a4846;
+    --green: #2ecc71; --green-bg: rgba(46,204,113,0.1);
+    --blue: #4a9eff; --blue-bg: rgba(74,158,255,0.1);
+    --purple: #a78bfa; --purple-bg: rgba(167,139,250,0.1);
+    --teal: #2dd4bf; --teal-bg: rgba(45,212,191,0.1);
+    --amber: #f59e0b; --amber-bg: rgba(245,158,11,0.1);
+    --red: #ef4444; --radius: 12px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .logo-name { font-size: 15px; font-weight: 600; }
+  .logo-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--text3); padding: 14px 20px 5px; letter-spacing: .08em; text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 13px; color: var(--text2); cursor: pointer; border-left: 2px solid transparent; transition: all .15s; }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .nav-item.active { color: var(--text); background: rgba(255,255,255,.05); border-left-color: var(--blue); }
+  .nav-icon { font-size: 13px; width: 18px; text-align: center; }
+  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); }
+  .src-status { font-size: 11px; color: var(--text2); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-green { background: var(--green); }
+  .dot-amber { background: var(--amber); }
+  .dot-grey { background: var(--text3); }
+  .dot-spin { background: var(--blue); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* MAIN */
+  .main { padding: 32px; overflow-y: auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .header-title { font-size: 22px; font-weight: 600; }
+  .header-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .period-tabs { display: flex; gap: 2px; background: var(--bg3); border-radius: var(--radius-sm); padding: 3px; }
+  .tab { padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+  .tab.active { background: var(--bg2); color: var(--text); border: 1px solid var(--border2); }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .metric-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .metric-value { font-size: 26px; font-weight: 600; letter-spacing: -.02em; min-height: 36px; }
+  .metric-badge { display: inline-flex; align-items: center; font-size: 11px; margin-top: 6px; padding: 2px 8px; border-radius: 20px; }
+  .badge-up { background: var(--green-bg); color: var(--green); }
+  .badge-dn { background: rgba(239,68,68,.1); color: var(--red); }
+  .badge-neu { background: var(--bg3); color: var(--text2); }
+
+  /* CARDS */
+  .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 220px; }
+  .chart-legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* SOURCES */
+  .src-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .src-row:last-child { border-bottom: none; }
+  .src-info { display: flex; align-items: center; gap: 10px; }
+  .src-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .icon-e { background: rgba(30,80,200,.2); color: #5b8fff; }
+  .icon-m { background: rgba(0,158,227,.15); color: #00b4ef; }
+  .icon-n { background: rgba(130,10,209,.2); color: #c084fc; }
+  .icon-k { background: rgba(45,212,191,.15); color: var(--teal); }
+  .src-name { font-size: 13px; font-weight: 500; }
+  .src-detail { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .src-amt { font-size: 14px; font-weight: 600; text-align: right; }
+  .src-pct { font-size: 11px; color: var(--text2); text-align: right; }
+
+  /* GOALS */
+  .goal-row { margin-bottom: 15px; }
+  .goal-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .goal-name { font-size: 13px; font-weight: 500; }
+  .goal-pct { font-size: 13px; color: var(--text2); }
+  .progress { height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 5px; border-radius: 3px; transition: width .6s ease; }
+  .goal-detail { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* TRANSACTIONS */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 0 0 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  .pos { color: var(--green); font-weight: 500; }
+  .neg { color: var(--red); }
+  .pill { font-size: 10px; padding: 2px 7px; border-radius: 20px; display: inline-block; }
+  .pill-e { background: rgba(30,80,200,.2); color: #5b8fff; }
+  .pill-m { background: rgba(0,158,227,.15); color: #00b4ef; }
+  .pill-n { background: rgba(130,10,209,.2); color: #c084fc; }
+  .pill-k { background: var(--teal-bg); color: var(--teal); }
+
+  /* AI */
+  .ai-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .ai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .ai-badge { width: 28px; height: 28px; background: linear-gradient(135deg,#4a9eff,#a78bfa); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .ai-title { font-size: 14px; font-weight: 500; }
+  .ai-sub { font-size: 11px; color: var(--text2); }
+  .ai-messages { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .msg { font-size: 13px; line-height: 1.55; padding: 9px 13px; border-radius: 10px; max-width: 88%; }
+  .msg.user { background: var(--blue-bg); color: var(--blue); align-self: flex-end; border: 1px solid rgba(74,158,255,.2); }
+  .msg.ai { background: var(--bg3); color: var(--text); align-self: flex-start; border: 1px solid var(--border); }
+  .quick-qs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .qq { font-size: 11px; padding: 4px 11px; border: 1px solid var(--border2); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+  .qq:hover { border-color: var(--blue); color: var(--blue); }
+  .ai-input-row { display: flex; gap: 8px; }
+  .ai-input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 9px 13px; font-size: 13px; color: var(--text); outline: none; }
+  .ai-input:focus { border-color: var(--blue); }
+  .ai-input::placeholder { color: var(--text3); }
+  .ai-send { padding: 9px 16px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-weight: 500; }
+  .ai-send:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* CSV */
+  .upload-zone { border: 1px dashed var(--border2); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; transition: all .15s; }
+  .upload-zone:hover { border-color: var(--blue); background: var(--blue-bg); }
+
+  /* LOADING */
+  .skeleton { background: linear-gradient(90deg,var(--bg3) 25%,var(--bg2) 50%,var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .loading-line { height: 14px; margin-bottom: 8px; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .metrics { grid-template-columns: repeat(2,1fr); }
+    .grid-main, .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
-<h1 style="color:#4a9eff;padding:32px">Carregando dashboard...</h1>
-<script>window.location.href='https://iridescent-malabi-3a63df.netlify.app'</script>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-name">💰 Financeiro</div>
+    <div class="logo-sub">Luana Alves · @lualves.mkt</div>
+  </div>
+  <div class="nav-section">Visão Geral</div>
+  <div class="nav-item active"><span class="nav-icon">◉</span> Resumo</div>
+  <div class="nav-item" onclick="document.getElementById('txn-section').scrollIntoView({behavior:'smooth'})"><span class="nav-icon">↕</span> Transações</div>
+  <div class="nav-item" onclick="document.getElementById('goals-section').scrollIntoView({behavior:'smooth'})"><span class="nav-icon">◎</span> Metas</div>
+  <div class="nav-section">IA & Importação</div>
+  <div class="nav-item" onclick="document.getElementById('ai-section').scrollIntoView({behavior:'smooth'})"><span class="nav-icon">✦</span> Assistente IA</div>
+  <div class="nav-item" onclick="document.getElementById('csv-section').scrollIntoView({behavior:'smooth'})"><span class="nav-icon">📄</span> Nubank CSV</div>
+  <div class="sidebar-footer">
+    <div class="src-status"><span class="dot dot-spin" id="dot-e"></span><span id="status-eduzz">Eduzz...</span></div>
+    <div class="src-status"><span class="dot dot-spin" id="dot-m"></span><span id="status-mp">Mercado Pago...</span></div>
+    <div class="src-status"><span class="dot dot-spin" id="dot-k"></span><span id="status-kiwify">Kiwify...</span></div>
+    <div class="src-status"><span class="dot dot-amber"></span>Nubank: manual</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="header">
+    <div>
+      <div class="header-title">Painel Financeiro</div>
+      <div class="header-sub" id="last-update">Carregando dados reais...</div>
+    </div>
+    <div class="period-tabs">
+      <button class="tab" onclick="setPeriod('7d',this)">7 dias</button>
+      <button class="tab active" onclick="setPeriod('30d',this)">30 dias</button>
+      <button class="tab" onclick="setPeriod('3m',this)">3 meses</button>
+      <button class="tab" onclick="setPeriod('year',this)">12 meses</button>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Receita Total</div><div class="metric-value skeleton loading-line" id="m-total" style="width:120px;height:36px"></div><div class="metric-badge badge-neu" id="m-total-b"> </div></div>
+    <div class="metric"><div class="metric-label">Vendas</div><div class="metric-value skeleton loading-line" id="m-vendas" style="width:60px;height:36px"></div><div class="metric-badge badge-neu" id="m-vendas-b"> </div></div>
+    <div class="metric"><div class="metric-label">Ticket Médio</div><div class="metric-value skeleton loading-line" id="m-ticket" style="width:90px;height:36px"></div><div class="metric-badge badge-neu" id="m-ticket-b"> </div></div>
+    <div class="metric"><div class="metric-label">Meta do Mês</div><div class="metric-value skeleton loading-line" id="m-meta" style="width:70px;height:36px"></div><div class="metric-badge badge-neu" id="m-meta-b"> </div></div>
+  </div>
+
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-title">Faturamento por fonte</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4a9eff"></div>Eduzz</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#00b4ef"></div>Mercado Pago</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div>Kiwify</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Nubank</div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartMain"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Por fonte</div>
+      <div id="sources-list"><div style="padding:20px;color:var(--text3);font-size:13px;text-align:center">Carregando...</div></div>
+    </div>
+  </div>
+
+  <div class="grid-2" id="goals-section">
+    <div class="card">
+      <div class="card-title">Metas</div>
+      <div id="goals-container"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Produtos (top vendas)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="chartProd"></canvas></div>
+    </div>
+  </div>
+
+  <div class="ai-wrap" id="ai-section">
+    <div class="ai-head">
+      <div class="ai-badge">✦</div>
+      <div><div class="ai-title">Assistente IA</div><div class="ai-sub">Pergunte sobre suas vendas, receitas e metas</div></div>
+    </div>
+    <div class="quick-qs">
+      <button class="qq" onclick="askAI('Quanto vendi essa semana?')">Quanto vendi essa semana?</button>
+      <button class="qq" onclick="askAI('Qual plataforma gerou mais receita?')">Plataforma top</button>
+      <button class="qq" onclick="askAI('Como estou em relação à meta do mês?')">Status da meta</button>
+      <button class="qq" onclick="askAI('Qual meu ticket médio?')">Ticket médio</button>
+      <button class="qq" onclick="askAI('Gere um relatório resumido do período atual')">Relatório completo</button>
+    </div>
+    <div class="ai-messages" id="ai-messages">
+      <div class="msg ai">Olá Luana! Estou carregando seus dados reais do Eduzz, Mercado Pago e Kiwify. Em instantes posso responder qualquer pergunta sobre suas finanças!</div>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="ai-input" placeholder="Pergunte qualquer coisa sobre suas vendas..." onkeydown="if(event.key==='Enter')sendAI()" />
+      <button class="ai-send" id="ai-btn" onclick="sendAI()">Enviar</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px" id="txn-section">
+    <div class="card-title">Transações recentes</div>
+    <div id="txn-container"><div style="padding:20px;color:var(--text3);font-size:13px;text-align:center">Carregando...</div></div>
+  </div>
+
+  <div class="card" id="csv-section">
+    <div class="card-title">Importar extrato Nubank (CSV)</div>
+    <div class="upload-zone" onclick="document.getElementById('csv-file').click()">
+      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSV(event)" />
+      <div style="font-size:22px;margin-bottom:6px">📄</div>
+      <div style="font-size:13px;color:var(--text2)">Clique para selecionar o CSV do Nubank</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Nubank app → Perfil → Extratos e exportações</div>
+    </div>
+    <div id="csv-preview"></div>
+  </div>
+</main>
+</div>
+
+<script>
+// ── Estado global ────────────────────────────────────────────
+const STATE = {
+  period: '30d',
+  eduzz: { total: 0, sales: 0, products: [], transactions: [], loaded: false },
+  mp: { total: 0, balance: 0, transactions: [], loaded: false },
+  kiwify: { total: 0, sales: 0, products: [], transactions: [], loaded: false },
+  nubank: { transactions: [] }
+};
+
+let chartMain = null, chartProd = null;
+
+// ── Formatação ────────────────────────────────────────────────
+function R(n) {
+  n = Number(n) || 0;
+  if (n >= 1000000) return 'R$ ' + (n/1e6).toFixed(1).replace('.',',') + 'M';
+  if (n >= 1000) return 'R$ ' + (n/1000).toFixed(1).replace('.',',') + 'K';
+  return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// ── Busca dados das Functions ─────────────────────────────────
+async function fetchEduzz() {
+  setDot('e','spin'); setStatus('eduzz', 'Conectando...');
+  try {
+    const r = await fetch(`/.netlify/functions/eduzz?period=${STATE.period}`);
+    const d = await r.json();
+    if (d.success) {
+      STATE.eduzz = { ...d, loaded: true };
+      setDot('e','green'); setStatus('eduzz', `✓ ${d.sales_count} vendas`);
+    } else { throw new Error(d.error || 'erro'); }
+  } catch(e) {
+    setDot('e','amber'); setStatus('eduzz', 'Sem dados');
+    STATE.eduzz.loaded = true;
+  }
+}
+
+async function fetchMP() {
+  setDot('m','spin'); setStatus('mp', 'Conectando...');
+  try {
+    const r = await fetch(`/.netlify/functions/mercadopago?period=${STATE.period}`);
+    const d = await r.json();
+    if (d.success) {
+      STATE.mp = { ...d, loaded: true };
+      setDot('m','green'); setStatus('mp', `✓ saldo ${R(d.balance)}`);
+    } else { throw new Error(d.error || 'erro'); }
+  } catch(e) {
+    setDot('m','amber'); setStatus('mp', 'Sem dados');
+    STATE.mp.loaded = true;
+  }
+}
+
+async function fetchKiwify() {
+  setDot('k','spin'); setStatus('kiwify', 'Conectando...');
+  try {
+    const r = await fetch(`/.netlify/functions/kiwify?period=${STATE.period}`);
+    const d = await r.json();
+    if (d.success) {
+      STATE.kiwify = { ...d, loaded: true };
+      setDot('k','green'); setStatus('kiwify', `✓ ${d.sales_count} vendas`);
+    } else { throw new Error(d.error || 'erro'); }
+  } catch(e) {
+    setDot('k','amber'); setStatus('kiwify', 'Sem dados');
+    STATE.kiwify.loaded = true;
+  }
+}
+
+// ── Helpers de status ─────────────────────────────────────────
+function setDot(id, type) {
+  const el = document.getElementById('dot-' + id);
+  if (!el) return;
+  el.className = 'dot dot-' + (type === 'green' ? 'green' : type === 'amber' ? 'amber' : type === 'spin' ? 'spin' : 'grey');
+}
+function setStatus(id, text) {
+  const el = document.getElementById('status-' + id);
+  if (el) el.textContent = text;
+}
+
+// ── Render ────────────────────────────────────────────────────
+function totals() {
+  const ed = STATE.eduzz.total || 0;
+  const mp = STATE.mp.total || 0;
+  const ki = STATE.kiwify.total || 0;
+  const nu = STATE.nubank.transactions.reduce((s,t) => s + (t.amount > 0 ? t.amount : 0), 0);
+  const total = ed + mp + ki + nu;
+  const sales = (STATE.eduzz.sales_count || 0) + (STATE.kiwify.sales_count || 0);
+  const ticket = sales > 0 ? Math.round(total/sales) : 0;
+  return { ed, mp, ki, nu, total, sales, ticket };
+}
+
+function renderMetrics() {
+  const t = totals();
+  const goal = 20000;
+  const pct = Math.round((t.total/goal)*100);
+  const set = (id, val, badge, cls) => {
+    const el = document.getElementById(id);
+    el.classList.remove('skeleton','loading-line');
+    el.style.width = el.style.height = '';
+    el.textContent = val;
+    const b = document.getElementById(id+'-b');
+    b.textContent = badge; b.className = 'metric-badge ' + cls;
+  };
+  set('m-total', R(t.total), '↑ dados reais', 'badge-up');
+  set('m-vendas', t.sales, '↑ Eduzz + Kiwify', 'badge-up');
+  set('m-ticket', R(t.ticket), 'por venda', 'badge-neu');
+  set('m-meta', pct + '%', R(t.total) + ' / ' + R(goal), pct >= 70 ? 'badge-up' : 'badge-neu');
+}
+
+function renderSources() {
+  const t = totals();
+  const tot = t.total || 1;
+  const row = (iconCls, ltr, name, detail, amt, pct) => `
+    <div class="src-row">
+      <div class="src-info">
+        <div class="src-icon ${iconCls}">${ltr}</div>
+        <div><div class="src-name">${name}</div><div class="src-detail">${detail}</div></div>
+      </div>
+      <div><div class="src-amt">${R(amt)}</div><div class="src-pct">${Math.round((amt/tot)*100)}%</div></div>
+    </div>`;
+  document.getElementById('sources-list').innerHTML =
+    row('icon-e','E','Eduzz',`${STATE.eduzz.sales_count||0} vendas`,t.ed,tot) +
+    row('icon-m','MP','Mercado Pago',`saldo ${R(STATE.mp.balance||0)}`,t.mp,tot) +
+    row('icon-k','K','Kiwify',`${STATE.kiwify.sales_count||0} vendas`,t.ki,tot) +
+    row('icon-n','N','Nubank','CSV importado',t.nu,tot);
+}
+
+function renderCharts() {
+  const t = totals();
+  const ctx = document.getElementById('chartMain');
+  if (chartMain) chartMain.destroy();
+  chartMain = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Eduzz','Mercado Pago','Kiwify','Nubank'],
+      datasets: [{
+        data: [t.ed, t.mp, t.ki, t.nu],
+        backgroundColor: ['#4a9eff','#00b4ef','#2dd4bf','#a78bfa'],
+        borderRadius: 7, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#5a5856', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#5a5856', font: { size: 11 }, callback: v => 'R$'+(v/1000).toFixed(0)+'k' } }
+      }
+    }
+  });
+
+  // Donut produtos — combina Eduzz + Kiwify
+  const allProds = {};
+  [...(STATE.eduzz.products||[]), ...(STATE.kiwify.products||[])].forEach(p => {
+    allProds[p.name] = (allProds[p.name]||0) + p.val;
+  });
+  const prods = Object.entries(allProds).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const ctxP = document.getElementById('chartProd');
+  if (chartProd) chartProd.destroy();
+  if (prods.length > 0) {
+    chartProd = new Chart(ctxP, {
+      type: 'doughnut',
+      data: {
+        labels: prods.map(p=>p[0]),
+        datasets: [{ data: prods.map(p=>p[1]), backgroundColor: ['#4a9eff','#2ecc71','#2dd4bf','#a78bfa','#f59e0b'], borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: '#8a8880', font: { size: 10 }, boxWidth: 10 } } } }
+    });
+  }
+}
+
+function renderGoals() {
+  const t = totals();
+  const goals = [
+    { name: 'Faturamento mensal', val: t.total, target: 20000, color: '#4a9eff' },
+    { name: 'Meta Eduzz (premiação)', val: t.ed, target: 12000, color: '#2ecc71' },
+    { name: 'Vendas Kiwify + Eduzz', val: t.total, target: 50000, color: '#2dd4bf' },
+    { name: 'Meta anual', val: t.total * 12, target: 300000, color: '#a78bfa' }
+  ];
+  document.getElementById('goals-container').innerHTML = goals.map(g => {
+    const pct = Math.min(100, Math.round((g.val/g.target)*100));
+    return `<div class="goal-row">
+      <div class="goal-header"><span class="goal-name">${g.name}</span><span class="goal-pct">${pct}%</span></div>
+      <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${g.color}"></div></div>
+      <div class="goal-detail">${R(g.val)} de ${R(g.target)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTransactions() {
+  const all = [
+    ...(STATE.eduzz.transactions||[]).map(t=>({...t,source:'eduzz'})),
+    ...(STATE.mp.transactions||[]).map(t=>({...t,source:'mp'})),
+    ...(STATE.kiwify.transactions||[]).map(t=>({...t,source:'kiwify'})),
+    ...STATE.nubank.transactions.map(t=>({...t,source:'nubank'}))
+  ].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
+
+  if (all.length === 0) {
+    document.getElementById('txn-container').innerHTML = '<div style="padding:20px;color:var(--text3);font-size:13px;text-align:center">Nenhuma transação encontrada no período</div>';
+    return;
+  }
+  const pillMap = { eduzz: 'pill-e E', mp: 'pill-m MP', kiwify: 'pill-k K', nubank: 'pill-n Nu' };
+  document.getElementById('txn-container').innerHTML = `<table>
+    <thead><tr><th style="width:18%">Data</th><th>Descrição</th><th style="width:14%">Fonte</th><th style="width:22%;text-align:right">Valor</th></tr></thead>
+    <tbody>${all.map(t => {
+      const [pcls, plbl] = (pillMap[t.source]||'pill-e E').split(' ');
+      const pos = t.amount > 0;
+      return `<tr>
+        <td style="color:var(--text2)">${t.date}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.desc}</td>
+        <td><span class="pill ${pcls}">${plbl}</span></td>
+        <td style="text-align:right" class="${pos?'pos':'neg'}">${pos?'+':''} ${R(Math.abs(t.amount))}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ── CSV Nubank ────────────────────────────────────────────────
+function handleCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    STATE.nubank.transactions = lines.slice(1).map(line => {
+      const cols = line.split(',');
+      const amount = parseFloat((cols[1]||'0').replace(/[^\d.-]/g,'')) || 0;
+      return { date: (cols[0]||'').trim().replace(/"/g,''), desc: (cols[2]||'Transação').trim().replace(/"/g,''), amount, type: amount >= 0 ? 'credit' : 'debit', source: 'nubank' };
+    }).filter(t => t.date);
+    renderAll();
+    document.getElementById('csv-preview').innerHTML = `<div style="margin-top:10px;padding:10px;background:var(--green-bg);border:1px solid rgba(46,204,113,.2);border-radius:8px;font-size:12px;color:var(--green)">✓ ${STATE.nubank.transactions.length} transações importadas de ${file.name}</div>`;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ── IA ────────────────────────────────────────────────────────
+function aiContext() {
+  const t = totals();
+  const prods = [...(STATE.eduzz.products||[]), ...(STATE.kiwify.products||[])].sort((a,b)=>b.val-a.val).slice(0,5).map(p=>`${p.name}: ${R(p.val)}`).join(', ');
+  return `Você é a assistente financeira pessoal de Luana Alves (@lualves.mkt), consultora de marketing digital para psicólogos brasileiros.
+
+DADOS REAIS DO PERÍODO (${STATE.period}):
+- Receita total: ${R(t.total)}
+- Eduzz: ${R(t.ed)} (${STATE.eduzz.sales_count||0} vendas)
+- Mercado Pago: ${R(t.mp)} — saldo disponível: ${R(STATE.mp.balance||0)}
+- Kiwify: ${R(t.ki)} (${STATE.kiwify.sales_count||0} vendas)
+- Nubank: ${R(t.nu)} (CSV importado)
+- Ticket médio: ${R(t.ticket)}
+- Meta mensal: R$ 20.000 — atingido ${Math.round((t.total/20000)*100)}% (${R(t.total)})
+- Top produtos: ${prods || 'sem dados'}
+
+Responda em português brasileiro informal, direto e objetivo. Máximo 3 parágrafos curtos.`;
+}
+
+async function sendAI() {
+  const input = document.getElementById('ai-input');
+  const q = input.value.trim();
+  if (!q) return;
+  const btn = document.getElementById('ai-btn');
+  input.value = ''; btn.disabled = true;
+  const msgs = document.getElementById('ai-messages');
+  msgs.innerHTML += `<div class="msg user">${q}</div>`;
+  msgs.innerHTML += `<div class="msg ai" id="ai-loading" style="opacity:.6">✦ Analisando seus dados...</div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  try {
+    const r = await fetch('/.netlify/functions/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, context: aiContext() })
+    });
+    const d = await r.json();
+    document.getElementById('ai-loading').remove();
+    msgs.innerHTML += `<div class="msg ai">${(d.answer||'Erro ao obter resposta.').replace(/\n/g,'<br>')}</div>`;
+  } catch(e) {
+    document.getElementById('ai-loading').textContent = 'Erro de conexão. Verifique se o site está no Netlify.';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  btn.disabled = false;
+}
+
+async function askAI(q) { document.getElementById('ai-input').value = q; await sendAI(); }
+
+// ── Período ───────────────────────────────────────────────────
+function setPeriod(p, el) {
+  STATE.period = p;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadAll();
+}
+
+// ── Render tudo ───────────────────────────────────────────────
+function renderAll() {
+  renderMetrics();
+  renderSources();
+  renderCharts();
+  renderGoals();
+  renderTransactions();
+  document.getElementById('last-update').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${new Date().toLocaleDateString('pt-BR')}`;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+async function loadAll() {
+  document.getElementById('last-update').textContent = 'Atualizando dados reais...';
+  await Promise.all([fetchEduzz(), fetchMP(), fetchKiwify()]);
+  renderAll();
+}
+
+loadAll();
+</script>
 </body>
 </html>
